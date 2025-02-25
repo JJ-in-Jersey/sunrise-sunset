@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     frame_path = Path('/Users/jason/Fair Currents/sunrise-sunset.csv')
 
-    frame = pd.DataFrame(columns=['date', 'fracillum', 'Begin Civil Twilight', 'End Civil Twilight', 'Rise', 'Set'])
+    frame = pd.DataFrame(columns=['date', 'fracillum', 'Begin Civil Twilight', 'Rise',  'Set', 'End Civil Twilight'])
 
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
@@ -19,8 +19,8 @@ if __name__ == '__main__':
 
     date = start
     while date <= end:
+        print(f'date: {date.date()}')
         request_string = request_head + date.strftime('%Y-%m-%d&') + request_tail
-        print(request_string)
         for _ in range(5):
             try:
                 response = requests.get(request_string)
