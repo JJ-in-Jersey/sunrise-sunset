@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from pathlib import Path
 from tt_file_tools.file_tools import write_df, print_file_exists
+from tt_date_time_tools.date_time_tools import time_to_degrees
 
 if __name__ == '__main__':
 
@@ -21,17 +22,21 @@ if __name__ == '__main__':
     while date <= end:
         print(f'date: {date.date()}')
         request_string = request_head + date.strftime('%Y-%m-%d&') + request_tail
-        for _ in range(5):
-            try:
-                response = requests.get(request_string)
-                response.raise_for_status()
-                response_dict = json.loads(response.text)
-                fracillum = response_dict['properties']['data']['fracillum']
-                sd = response_dict['properties']['data']['sundata']
-                frame_dict = {'date': date, 'fracillum': fracillum, sd[0]['phen']: sd[0]['time'], sd[1]['phen']: sd[1]['time'], sd[3]['phen']: sd[3]['time'], sd[4]['phen']: sd[4]['time']}
-                frame.loc[len(frame)] = frame_dict
-            except requests.exceptions.RequestException as e:
-                print(e)
-                time.sleep(1)
+        try:
+            response = requests.get(request_string)
+            response.raise_for_status()
+            response_dict = json.loads(response.text)
+            fracillum = response_dict['properties']['data']['fracillum']
+            sd = response_dict['properties']['data']['sundata']
+            frame_dict = {'date': date, 'fracillum': fracillum, sd[0]['phen']: sd[0]['time'].split(' ')[0] + ':00', sd[1]['phen']: sd[1]['time'].split(' ')[0] + ':00', sd[3]['phen']: sd[3]['time'].split(' ')[0] + ':00', sd[4]['phen']: sd[4]['time'].split(' ')[0] + ':00'}
+            frame.loc[len(frame)] = frame_dict
+        except requests.exceptions.RequestException as e:
+            print(e)
         date = date + td(days=1)
+
+    frame['BCT degrees'] = frame['Begin Civil Twilight'].apply(time_to_degrees)
+    frame['RISE degrees'] = frame['Rise'].apply(time_to_degrees)
+    frame['SET degrees'] = frame['Set'].apply(time_to_degrees)
+    frame['ECT degrees'] = frame['End Civil Twilight'].apply(time_to_degrees)
+
     print_file_exists(write_df(frame, frame_path))
