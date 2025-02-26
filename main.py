@@ -2,14 +2,13 @@ from datetime import datetime as dt, timedelta as td
 import requests
 import json
 import pandas as pd
-from pathlib import Path
 from tt_file_tools.file_tools import write_df, print_file_exists
 from tt_date_time_tools.date_time_tools import time_to_degrees
+from tt_os_abstraction.os_abstraction import env
 
 if __name__ == '__main__':
 
-    frame_path = Path('/Users/jason/Fair Currents/sunrise-sunset.csv')
-
+    frame_path = env('user_profile').joinpath('Fair Currents/sunrise-sunset.csv')
     frame = pd.DataFrame(columns=['date', 'fracillum', 'Begin Civil Twilight', 'Rise',  'Set', 'End Civil Twilight'])
 
     start = dt(2024, 12, 1)
