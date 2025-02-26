@@ -9,7 +9,7 @@ from tt_os_abstraction.os_abstraction import env
 if __name__ == '__main__':
 
     frame_path = env('user_profile').joinpath('Fair Currents/sunrise-sunset.csv')
-    frame = pd.DataFrame(columns=['date', 'fracillum', 'Begin Civil Twilight', 'Rise',  'Set', 'End Civil Twilight'])
+    frame = pd.DataFrame(columns=['date', 'fracillum', 'Begin Civil Twilight', 'Rise',  'End Golden Hour', 'Begin Golden Hour', 'Set', 'End Civil Twilight'])
 
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
@@ -32,8 +32,16 @@ if __name__ == '__main__':
             print(e)
         date = date + td(days=1)
 
+
+
     frame['BCT degrees'] = frame['Begin Civil Twilight'].apply(time_to_degrees)
     frame['RISE degrees'] = frame['Rise'].apply(time_to_degrees)
+    frame['End Golden Hour'] = pd.to_datetime(frame['Begin Civil Twilight']) + pd.Timedelta(hours=1)
+    frame['End Golden Hour'] = frame['End Golden Hour'].dt.time
+    frame['EGH degrees'] = frame['End Golden Hour'].apply(time_to_degrees)
+    frame['Begin Golden Hour'] = pd.to_datetime(frame['End Civil Twilight']) - pd.Timedelta(hours=1)
+    frame['Begin Golden Hour'] = frame['Begin Golden Hour'].dt.time
+    frame['BGH degrees'] = frame['End Golden Hour'].apply(time_to_degrees)
     frame['SET degrees'] = frame['Set'].apply(time_to_degrees)
     frame['ECT degrees'] = frame['End Civil Twilight'].apply(time_to_degrees)
 
