@@ -1,6 +1,5 @@
 from datetime import datetime as dt, timedelta as td
 import requests
-import time
 import json
 import pandas as pd
 from pathlib import Path
