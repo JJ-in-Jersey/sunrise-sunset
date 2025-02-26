@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
-    request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?date='
+    request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
     request_tail = 'coords=40.78,-74.01&tz=-5&dst=true'
 
     date = start
