@@ -21,9 +21,7 @@ if __name__ == '__main__':
     request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
     request_tail = 'coords=40.78,-74.01&tz=-5&dst=true'
 
-    frame = pd.DataFrame(columns=['date', 'curphase',
-                                  'sr', 'srd', 'ss', 'ssd', 'st', 'std',
-                                  'mr', 'mrd', 'ms', 'msd', 'mt', 'mtd'])
+    frame = pd.DataFrame(columns=['date', 'sr', 'ss', 'st', 'mr', 'ms', 'mt', 'mp'])
     date = start
     while date <= end:
         print(f'date: {date.date()}')
@@ -35,13 +33,14 @@ if __name__ == '__main__':
             sd = {d['phen']: pd.to_datetime(d['time'].split(' ')[0] + ':00', format='mixed') for d in response_dict['properties']['data']['sundata']}
             md = {'Rise': None, 'Set': None, 'Upper Transit': None}
             md =  md | {d['phen']: pd.to_datetime(d['time'].split(' ')[0]  + ':00', format='mixed') for d in response_dict['properties']['data']['moondata']}
-            frame_dict = {'date': date, 'curphase': response_dict['properties']['data']['curphase'],
-                          'sr': sd['Rise'], 'srd': time_to_degrees(sd['Rise']),
-                          'ss': sd['Set'], 'ssd': time_to_degrees(sd['Set']),
-                          'st': sd['Upper Transit'], 'std': time_to_degrees(sd['Upper Transit']),
-                          'mr': md['Rise'], 'mrd': time_to_degrees(md['Rise']),
-                          'ms': md['Set'], 'msd': time_to_degrees(md['Set']),
-                          'mt': md['Upper Transit'], 'mtd': time_to_degrees(md['Upper Transit'])
+            frame_dict = {'date': date,
+                          'sr': time_to_degrees(sd['Rise']),
+                          'ss': time_to_degrees(sd['Set']),
+                          'st': time_to_degrees(sd['Upper Transit']),
+                          'mr': time_to_degrees(md['Rise']),
+                          'ms': time_to_degrees(md['Set']),
+                          'mt': time_to_degrees(md['Upper Transit']),
+                          'mp': response_dict['properties']['data']['curphase']
                           }
             frame.loc[len(frame)] = frame_dict
         except requests.exceptions.RequestException as e:
@@ -61,5 +60,5 @@ if __name__ == '__main__':
             tt_frame.loc[tt_frame.date == target_date, 'mr'] = frame.loc[row]['mr']
             tt_frame.loc[tt_frame.date == target_date, 'ms'] = frame.loc[row]['ms']
             tt_frame.loc[tt_frame.date == target_date, 'mt'] = frame.loc[row]['mt']
-            tt_frame.loc[tt_frame.date == target_date, 'mp'] = frame.loc[row]['curphase']
+            tt_frame.loc[tt_frame.date == target_date, 'mp'] = frame.loc[row]['mp']
         write_df(tt_frame, csv_file)
