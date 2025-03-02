@@ -18,6 +18,7 @@ if __name__ == '__main__':
     frame_path = env('user_profile').joinpath('Fair Currents/sunrise-sunset.csv')
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
+    # end = dt(2024, 12, 5)
     request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
     request_tail = 'coords=40.78,-74.01&tz=-5&dst=true'
 
@@ -54,11 +55,6 @@ if __name__ == '__main__':
         tt_frame = read_df(csv_file)
         for row in range(len(frame)):
             target_date = f'{frame.loc[row]['date'].month}/{frame.loc[row]['date'].day}/{frame.loc[row]['date'].year}'  # strftime hack
-            tt_frame.loc[tt_frame.date == target_date, 'sr'] = frame.loc[row]['sr']
-            tt_frame.loc[tt_frame.date == target_date, 'ss'] = frame.loc[row]['ss']
-            tt_frame.loc[tt_frame.date == target_date, 'st'] = frame.loc[row]['st']
-            tt_frame.loc[tt_frame.date == target_date, 'mr'] = frame.loc[row]['mr']
-            tt_frame.loc[tt_frame.date == target_date, 'ms'] = frame.loc[row]['ms']
-            tt_frame.loc[tt_frame.date == target_date, 'mt'] = frame.loc[row]['mt']
-            tt_frame.loc[tt_frame.date == target_date, 'mp'] = frame.loc[row]['mp']
+            for c in frame.columns.to_list()[1:]:
+                tt_frame.loc[tt_frame.date == target_date, c] = frame.loc[row][c]
         write_df(tt_frame, csv_file)
