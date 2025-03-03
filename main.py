@@ -1,5 +1,5 @@
 from datetime import datetime as dt, timedelta as td
-
+from string import Template
 import requests
 import json
 import pandas as pd
@@ -11,12 +11,12 @@ from tt_os_abstraction.os_abstraction import env
 if __name__ == '__main__':
     # twilight and golden hour a so close to 30 minutes it's not worth the accuracy to download and calculate
 
-    file_list = list_all_files(env('user_profile').joinpath('Fair Currents'))
-    tt_files = [Path(file) for file in file_list if "transit times" in file]
+    fair_currents = list_all_files(env('user_profile').joinpath('Fair Currents'))
+    tt_files = [Path(file) for file in fair_currents if "transit times" in file]
 
     start = dt(2024, 12, 1)
-    # end = dt(2026, 1, 31)
-    end = dt(2025, 2, 1)
+    end = dt(2026, 1, 31)
+    # end = dt(2025, 2, 1)
 
     moon_path = env('user_profile').joinpath('Fair Currents/major-moon-phases.csv')
     if moon_path.exists():
@@ -35,15 +35,17 @@ if __name__ == '__main__':
                     moon_frame.loc[len(moon_frame)] = {'date': dt(d['year'], d['month'], d['day']), 'phase':d['phase']}
             except requests.exceptions.RequestException as e:
                 print(e)
-        moon_frame = moon_frame[(moon_frame['date'] >= start - td(days=1)) & (moon_frame['date'] <= end + td(days=1))]
+        moon_frame = moon_frame[(moon_frame['date'] >= start) & (moon_frame['date'] <= end)]
         print_file_exists(write_df(moon_frame, moon_path))
 
-    sun_path = env('user_profile').joinpath('Fair Currents/sunrise-sunset.csv')
+    sun_temp = Template(f'{str(env('user_profile').joinpath('Fair Currents/sunrise-sunset'))}-$BASE.csv')
+
+    sun_path = Path(sun_temp.substitute(BASE='original'))
     if sun_path.exists():
         sun_frame = read_df(sun_path)
         sun_frame.date = pd.to_datetime(sun_frame.date)
     else:
-        sun_frame = pd.DataFrame(columns=['date', 'sr', 'ss', 'st', 'mr', 'ms', 'mt', 'mp', 'fc'])
+        sun_frame = pd.DataFrame(columns=['date', 'sr', 'ss', 'st', 'mr', 'ms', 'mt', 'mp'])
         sun_request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
         sun_request_tail = 'coords=40.78,-74.01&tz=-5&dst=true'
         date = start
@@ -64,27 +66,52 @@ if __name__ == '__main__':
                               'mr': time_to_degrees(md['Rise']),
                               'ms': time_to_degrees(md['Set']),
                               'mt': time_to_degrees(md['Upper Transit']),
-                              'mp': response_dict['properties']['data']['curphase'],
-                              'fc': response_dict['properties']['data']['fracillum'][:-1]
+                              'mp': response_dict['properties']['data']['curphase']
                               }
                 sun_frame.loc[len(sun_frame)] = frame_dict
             except requests.exceptions.RequestException as e:
                 print(e)
             date = date + td(days=1)
-
-        for idx, row in moon_frame.iterrows():
-            if idx == 0:
-                sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
-                sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
-            elif idx == len(sun_frame) - 1:
-                sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
-                sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
-            else:
-                sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
-                sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
-                sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
-
         print_file_exists(write_df(sun_frame, sun_path))
+
+    sun_path = Path(sun_temp.substitute(BASE='combined'))
+    for idx, row in moon_frame.iterrows():
+        if idx == 0:
+            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
+        elif idx == len(sun_frame) - 1:
+            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
+        else:
+            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
+    print_file_exists(write_df(sun_frame, sun_path))
+
+    sun_path = Path(sun_temp.substitute(BASE='final'))
+    for idx, row in sun_frame.iterrows():
+        if row['ms'] > row['mr'] or row['ms'] < row['mr']:
+            sun_frame.loc[idx, 'mg 1'] = row['mr']
+            sun_frame.loc[idx, 'mg 2'] = row['ms']
+            # sun_frame.loc[idx, 'mg-1'] = row['mt']
+            # sun_frame.loc[idx, 'mg-2'] = row['ms']
+        if pd.isna(row['ms']):
+            sun_frame.loc[idx, 'mg 1'] = row['mr']
+            sun_frame.loc[idx, 'mg 2'] = 360
+            # sun_frame.loc[idx, 'mg-1'] = row['mt']
+            # sun_frame.loc[idx, 'mg-2'] = 360
+        if pd.isna(row['mr']):
+            sun_frame.loc[idx, 'mg 1'] = 0
+            sun_frame.loc[idx, 'mg 2'] = row['ms']
+            # sun_frame.loc[idx, 'mg-1'] = row['mt']
+            # sun_frame.loc[idx, 'mg-2'] = row['ms']
+        if pd.isna(row['mt']):
+            sun_frame.loc[idx, 'mg 1'] = row['mr']
+            sun_frame.loc[idx, 'mg 2'] = row['ms']
+            sun_frame.loc[idx, 'mt'] = 0
+            # sun_frame.loc[idx, 'mg-1'] = 0
+            # sun_frame.loc[idx, 'mg-2'] = row['ms']
+    print_file_exists(write_df(sun_frame, sun_path))
 
     for csv_file in tt_files:
         print(f'Adding sun and moon data to {csv_file}')
