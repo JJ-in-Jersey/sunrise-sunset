@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 response.raise_for_status()
                 response_dict = json.loads(response.text)
                 for d in response_dict['phasedata']:
-                    moon_frame.loc[len(moon_frame)] = {'date': dt(d['year'], d['month'], d['day']), 'phase':d['phase']}
+                    moon_frame.loc[len(moon_frame)] = {'date': dt(d['year'], d['month'], d['day']), 'phase': d['phase']}
             except requests.exceptions.RequestException as e:
                 print(e)
         moon_frame = moon_frame[(moon_frame['date'] >= start) & (moon_frame['date'] <= end)]
@@ -58,7 +58,7 @@ if __name__ == '__main__':
                 response_dict = json.loads(response.text)
                 sd = {d['phen']: pd.to_datetime(d['time'].split(' ')[0] + ':00', format='mixed') for d in response_dict['properties']['data']['sundata']}
                 md = {'Rise': None, 'Set': None, 'Upper Transit': None}
-                md =  md | {d['phen']: pd.to_datetime(d['time'].split(' ')[0]  + ':00', format='mixed') for d in response_dict['properties']['data']['moondata']}
+                md = md | {d['phen']: pd.to_datetime(d['time'].split(' ')[0] + ':00', format='mixed') for d in response_dict['properties']['data']['moondata']}
                 frame_dict = {'date': date,
                               'sr': time_to_degrees(sd['Rise']),
                               'ss': time_to_degrees(sd['Set']),
@@ -93,31 +93,23 @@ if __name__ == '__main__':
         if row['ms'] > row['mr'] or row['ms'] < row['mr']:
             sun_frame.loc[idx, 'mg 1'] = row['mr']
             sun_frame.loc[idx, 'mg 2'] = row['ms']
-            # sun_frame.loc[idx, 'mg-1'] = row['mt']
-            # sun_frame.loc[idx, 'mg-2'] = row['ms']
         if pd.isna(row['ms']):
             sun_frame.loc[idx, 'mg 1'] = row['mr']
             sun_frame.loc[idx, 'mg 2'] = 360
-            # sun_frame.loc[idx, 'mg-1'] = row['mt']
-            # sun_frame.loc[idx, 'mg-2'] = 360
         if pd.isna(row['mr']):
             sun_frame.loc[idx, 'mg 1'] = 0
             sun_frame.loc[idx, 'mg 2'] = row['ms']
-            # sun_frame.loc[idx, 'mg-1'] = row['mt']
-            # sun_frame.loc[idx, 'mg-2'] = row['ms']
         if pd.isna(row['mt']):
             sun_frame.loc[idx, 'mg 1'] = row['mr']
             sun_frame.loc[idx, 'mg 2'] = row['ms']
             sun_frame.loc[idx, 'mt'] = 0
-            # sun_frame.loc[idx, 'mg-1'] = 0
-            # sun_frame.loc[idx, 'mg-2'] = row['ms']
     print_file_exists(write_df(sun_frame, sun_path))
 
     for csv_file in tt_files:
         print(f'Adding sun and moon data to {csv_file}')
         tt_frame = read_df(csv_file)
         for row in range(len(sun_frame)):
-            target_date = f'{sun_frame.loc[row]['date'].month}/{sun_frame.loc[row]['date'].day}/{sun_frame.loc[row]['date'].year}'  # strftime hack
+            target_date = str(sun_frame.loc[row]['date'].date())
             for c in sun_frame.columns.to_list()[1:]:
                 tt_frame.loc[tt_frame.date == target_date, c] = sun_frame.loc[row][c]
         write_df(tt_frame, csv_file)
