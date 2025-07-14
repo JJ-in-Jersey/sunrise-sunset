@@ -46,7 +46,7 @@ if __name__ == '__main__':
         sun_frame = DataFrame(csv_source=sun_path)
         sun_frame.date = pd.to_datetime(sun_frame.date)
     else:
-        sun_frame = DataFrame(columns=['date', 'sr', 'ss', 'st', 'mr', 'ms', 'mt', 'mp'])
+        sun_frame = DataFrame(columns=['date', 'sunrise', 'sunset', 'sun_transit', 'moonrise', 'moonset', 'moon_transit', 'moon_phase'])
         sun_request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
         sun_request_tail = 'coords=40.78,-74.01&tz=-5&dst=true'
         date = start
@@ -61,13 +61,13 @@ if __name__ == '__main__':
                 md = {'Rise': None, 'Set': None, 'Upper Transit': None}
                 md = md | {d['phen']: pd.to_datetime(d['time'].split(' ')[0] + ':00', format='mixed') for d in response_dict['properties']['data']['moondata']}
                 frame_dict = {'date': date,
-                              'sr': time_to_degrees(sd['Rise']),
-                              'ss': time_to_degrees(sd['Set']),
-                              'st': time_to_degrees(sd['Upper Transit']),
-                              'mr': None if md['Rise'] is None else time_to_degrees(md['Rise']),
-                              'ms': None if md['Set'] is None else time_to_degrees(md['Set']),
-                              'mt': None if md['Upper Transit'] is None else time_to_degrees(md['Upper Transit']),
-                              'mp': response_dict['properties']['data']['curphase']
+                              'sunrise': time_to_degrees(sd['Rise']),
+                              'sunset': time_to_degrees(sd['Set']),
+                              'sun_transit': time_to_degrees(sd['Upper Transit']),
+                              'moonrise': None if md['Rise'] is None else time_to_degrees(md['Rise']),
+                              'moonset': None if md['Set'] is None else time_to_degrees(md['Set']),
+                              'moon_transit': None if md['Upper Transit'] is None else time_to_degrees(md['Upper Transit']),
+                              'moon_phase': response_dict['properties']['data']['curphase']
                               }
                 frame_dict = {col: frame_dict.get(col) for col in sun_frame.columns}
                 frame_dict = {k: v for k, v in frame_dict.items() if pd.notna(v)}
@@ -80,32 +80,32 @@ if __name__ == '__main__':
     sun_path = Path(sun_temp.substitute(BASE='combined'))
     for idx, row in moon_frame.iterrows():
         if idx == 0:
-            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
-            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date, 'moon_phase'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'moon_phase'] = row.phase
         elif idx == len(sun_frame) - 1:
-            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
-            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'moon_phase'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date, 'moon_phase'] = row.phase
         else:
-            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'mp'] = row.phase
-            sun_frame.loc[sun_frame.date == row.date, 'mp'] = row.phase
-            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'mp'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date - td(days=1), 'moon_phase'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date, 'moon_phase'] = row.phase
+            sun_frame.loc[sun_frame.date == row.date + td(days=1), 'moon_phase'] = row.phase
     print_file_exists(sun_frame.write(sun_path))
 
     sun_path = Path(sun_temp.substitute(BASE='final'))
     for idx, row in sun_frame.iterrows():
-        if row['ms'] > row['mr'] or row['ms'] < row['mr']:
-            sun_frame.loc[idx, 'mg 1'] = row['mr']
-            sun_frame.loc[idx, 'mg 2'] = row['ms']
-        if pd.isna(row['ms']):
-            sun_frame.loc[idx, 'mg 1'] = row['mr']
-            sun_frame.loc[idx, 'mg 2'] = 360
-        if pd.isna(row['mr']):
-            sun_frame.loc[idx, 'mg 1'] = 0
-            sun_frame.loc[idx, 'mg 2'] = row['ms']
-        if pd.isna(row['mt']):
-            sun_frame.loc[idx, 'mg 1'] = row['mr']
-            sun_frame.loc[idx, 'mg 2'] = row['ms']
-            sun_frame.loc[idx, 'mt'] = 0
+        if row['moonset'] > row['moonrise'] or row['moonset'] < row['moonrise']:
+            sun_frame.loc[idx, 'moon_start'] = row['moonrise']
+            sun_frame.loc[idx, 'moon_end'] = row['moonset']
+        if pd.isna(row['moonset']):
+            sun_frame.loc[idx, 'moon_start'] = row['moonrise']
+            sun_frame.loc[idx, 'moon_end'] = 360
+        if pd.isna(row['moonrise']):
+            sun_frame.loc[idx, 'moon_start'] = 0
+            sun_frame.loc[idx, 'moon_end'] = row['moonset']
+        if pd.isna(row['moon_transit']):
+            sun_frame.loc[idx, 'moon_start'] = row['moonrise']
+            sun_frame.loc[idx, 'moon_end'] = row['moonset']
+            sun_frame.loc[idx, 'moon_transit'] = 0
     print_file_exists(sun_frame.write(sun_path))
 
     for csv_file in tt_files:
