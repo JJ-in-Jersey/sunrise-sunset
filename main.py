@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # twilight and golden hour a so close to 30 minutes it's not worth the accuracy to download and calculate
 
     fair_currents = list_all_files(env('user_profile').joinpath('Fair Currents'))
-    tt_files = [Path(file) for file in fair_currents if "transit times" in file]
+    tt_files = [Path(file) for file in fair_currents if "fair currents" in file]
 
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
@@ -110,9 +110,9 @@ if __name__ == '__main__':
 
     for csv_file in tt_files:
         print(f'Adding sun and moon data to {csv_file}')
-        tt_frame = DataFrame(csv_source=csv_file)
+        frame = DataFrame(csv_source=csv_file)
         for row in range(len(sun_frame)):
             target_date = str(sun_frame.loc[row]['date'].date())
             for c in sun_frame.columns.to_list()[1:]:
-                tt_frame.loc[tt_frame.date == target_date, c] = sun_frame.loc[row][c]
-        tt_frame.write(csv_file)
+                frame.loc[frame.date == target_date, c] = sun_frame.loc[row][c]
+        frame.write(csv_file)
