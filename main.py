@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # twilight and golden hour a so close to 30 minutes it's not worth the accuracy to download and calculate
 
     fair_currents = list_all_files(env('user_profile').joinpath('Fair Currents'))
-    tt_files = [Path(file) for file in fair_currents if "fair currents" in file]
+    tt_files = [Path(file) for file in fair_currents if 'fair currents' in file or 'savitsky golay' in file]
 
     start = dt(2024, 12, 1)
     end = dt(2026, 1, 31)
