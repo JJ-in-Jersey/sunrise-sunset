@@ -58,24 +58,28 @@ if __name__ == '__main__':
                 response = requests.get(request_string)
                 response.raise_for_status()
                 response_dict = json.loads(response.text)
-                # sd = {d['phen']: pd.to_datetime(d['time'].split(' ')[0] + ':00', format='mixed') for d in response_dict['properties']['data']['sundata']}
                 sd = {d['phen']: d['time'].split()[0].split(':') for d in response_dict['properties']['data']['sundata']}
                 md = {d['phen']: d['time'].split()[0].split(':') for d in response_dict['properties']['data']['moondata']}
+                sunrise = date.replace(hour=int(sd['Rise'][0]), minute=int(sd['Rise'][1]))
+                sunset = date.replace(hour=int(sd['Set'][0]), minute=int(sd['Set'][1]))
+                sunrise_golden_hour = sunrise - pd.Timedelta(minutes=30)
+                sunset_golden_hour = sunset + pd.Timedelta(minutes=30)
                 frame_dict = {'date': date,
-                              'sunrise': date.replace(hour=int(sd['Rise'][0]), minute=int(sd['Rise'][1])),
-                              'sunset': date.replace(hour=int(sd['Set'][0]), minute=int(sd['Set'][1])),
+                              'sunrise': sunrise,
+                              'sunset': sunset,
+                              'sunrise golden hour': sunrise_golden_hour,
+                              'sunset golden hour': sunset_golden_hour,
                               'moon rise': None if md.get('Rise') is None else date.replace(hour=int(md['Rise'][0]), minute=int(md['Rise'][1])),
                               'moon transit': None if md.get('Upper Transit') is None else date.replace(hour=int(md['Upper Transit'][0]), minute=int(md['Upper Transit'][1])),
                               'moon set': None if md.get('Set') is None else date.replace(hour=int(md['Set'][0]), minute=int(md['Set'][1])),
                               'sunrise angle': time_to_degrees(':'.join(sd['Rise'])),
                               'sunset angle': time_to_degrees(':'.join(sd['Set'])),
+                              'sunrise golden hour angle': time_to_degrees(sunrise_golden_hour),
+                              'sunset golden hour angle': time_to_degrees(sunset_golden_hour),
                               'moon rise angle': None if md.get('Rise') is None else time_to_degrees(':'.join(md['Rise'])),
                               'moon transit angle': None if md.get('Upper Transit') is None else time_to_degrees(':'.join(md['Upper Transit'])),
                               'moon set angle': None if md.get('Set') is None else time_to_degrees(':'.join(md['Set'])),
-                              'moon phase': response_dict['properties']['data']['curphase'],
-                              'moon start angle': None if md.get('Rise') is None else time_to_degrees(':'.join(md['Rise'])),
-                              'moon peak angle': None if md.get('Upper Transit') is None else time_to_degrees(':'.join(md['Upper Transit'])),
-                              'moon end angle': None if md.get('Set') is None else time_to_degrees(':'.join(md['Set'])),
+                              'moon phase': response_dict['properties']['data']['curphase']
                               }
                 frames.append(frame_dict)
             except requests.exceptions.RequestException as e:
@@ -84,7 +88,7 @@ if __name__ == '__main__':
         sun_frame = DataFrame(frames)
         print_file_exists(sun_frame.write(sun_path))
 
-    sun_path = Path(sun_temp.substitute(BASE='combined'))
+    sun_path = Path(sun_temp.substitute(BASE='final'))
     for idx, row in moon_frame.iterrows():
         if idx == 0:
             sun_frame.loc[sun_frame.date == row.date, 'moon phase'] = row.phase
@@ -96,30 +100,6 @@ if __name__ == '__main__':
             sun_frame.loc[sun_frame.date == row.date - td(days=1), 'moon phase'] = row.phase
             sun_frame.loc[sun_frame.date == row.date, 'moon phase'] = row.phase
             sun_frame.loc[sun_frame.date == row.date + td(days=1), 'moon phase'] = row.phase
-    print_file_exists(sun_frame.write(sun_path))
-
-    # If moon set is prior to moon rise, that means that the moon travel is left over from
-    # the prior day. The moon will be visible at 00:00 until moon set. The moon will become
-    # visible again at moon rise until 24:00. This can be displayed as a reverse arc with a
-    # break at midnight.
-    sun_path = Path(sun_temp.substitute(BASE='final'))
-    for idx, row in sun_frame.iterrows():
-        if pd.notna(row['moon rise']) and pd.notna(row['moon set']):
-            if row['moon rise'] < row['moon set']:
-                sun_frame.loc[idx, 'moon start angle'] = sun_frame.loc[idx, 'moon rise angle']
-                sun_frame.loc[idx, 'moon end angle'] = sun_frame.loc[idx, 'moon set angle']
-            elif row['moon rise'] > row['moon set'] and pd.notna(row['moon transit']):
-                sun_frame.loc[idx, 'moon start angle'] = sun_frame.loc[idx, 'moon set angle']
-                sun_frame.loc[idx, 'moon end angle'] = sun_frame.loc[idx, 'moon rise angle']
-            else:
-                sun_frame.loc[idx, 'moon start angle'] = sun_frame.loc[idx, 'moon set angle']
-                sun_frame.loc[idx, 'moon end angle'] = sun_frame.loc[idx, 'moon rise angle']
-                sun_frame.loc[idx, 'moon peak angle'] = 0
-        elif pd.isna(row['moon rise']):
-            sun_frame.loc[idx, 'moon start angle'] = 0
-        elif pd.isna(row['moon set']):
-            sun_frame.loc[idx, 'moon end angle'] = 360
-
     print_file_exists(sun_frame.write(sun_path))
 
     for csv_file in tt_files:
