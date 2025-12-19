@@ -17,13 +17,13 @@ if __name__ == '__main__':
     # tt_files = [Path(file) for file in fair_currents if 'fair currents' in file or 'savitsky golay' in file]
     tt_files = [Path(file) for file in fair_currents if 'complete' in file and 'csv' in file]
 
-    start = dt(2024, 12, 1)
-    end = dt(2026, 1, 31)
+    start = dt(2025, 12, 1)
+    end = dt(2027, 1, 31)
 
     moon_path = env('user_profile').joinpath('Fair Currents/major-moon-phases.csv')
     if moon_path.exists():
         moon_frame = DataFrame(csv_source=moon_path)
-        moon_frame.date = pd.to_datetime(moon_frame.date)
+        moon_frame['date'] = pd.to_datetime(moon_frame.date)
     else:
         moon_frame = DataFrame(columns=['date', 'phase'])
         for y in range(3):
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     sun_path = Path(sun_temp.substitute(BASE='original'))
     if sun_path.exists():
         sun_frame = DataFrame(csv_source=sun_path)
-        sun_frame.date = pd.to_datetime(sun_frame.date)
+        sun_frame['date'] = pd.to_datetime(sun_frame.date)
     else:
         frames = []
         sun_request_head = 'https://aa.usno.navy.mil/api/rstt/oneday?ID=FrCrnts&date='
