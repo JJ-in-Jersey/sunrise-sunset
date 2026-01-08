@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     fair_currents = list_all_files(env('user_profile').joinpath('Fair Currents'))
     # tt_files = [Path(file) for file in fair_currents if 'fair currents' in file or 'savitsky golay' in file]
-    tt_files = [Path(file) for file in fair_currents if 'complete' in file and 'csv' in file]
+    tt_files = [Path(file) for file in fair_currents if 'aggregate_transit_times' in file and 'csv' in file]
 
     start = dt(2025, 12, 1)
     end = dt(2027, 1, 31)
